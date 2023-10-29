@@ -282,43 +282,146 @@ void DFS(struct Vertex *startVertex) {
     printf("\n");
 }
 
+void DeleteVertex() {
+    char vertexData;
+    printf("Enter the data of the vertex to be deleted: ");
+    scanf(" %c", &vertexData);
 
-int main()
-{
-    int Venteries;
-    printf("How many vertices you want to insert? ");
-    scanf("%d",&Venteries);
-    for (int i = 0; i < Venteries; i++)
-    {
-       InsertVertex();
+    struct Vertex* prev = NULL;
+    struct Vertex* curr = graph;
+
+    while (curr != NULL) {
+        if (curr->data == vertexData) {
+            struct Edge* edge = curr->edgeList;
+            while (edge != NULL) {
+                struct Edge* temp = edge;
+                edge = edge->enext;
+                free(temp);
+            }
+            if (prev == NULL) {
+                graph = curr->next;
+            } else {
+                prev->next = curr->next;
+            }
+
+            free(curr);
+            printf("Vertex %c has been deleted.\n", vertexData);
+            return;
+        }
+
+        prev = curr;
+        curr = curr->next;
     }
-    int Eenteries;
-    printf("\nHow many edges you want to insert? ");
-      scanf("%d",&Eenteries);
-      for (int i = 0; i < Eenteries; i++)
-      {
-        InsertEdge();
-      }
-      
-    
-    printf("Edges And Vertices are: \n");
-    printEdgesAndVertices();
-    printVertices();
-    int outDeg = outDegree();
-    printf("\nOutDegree is: %d",outDeg);
-    int inDeg = inDegree();
-    printf("\nInDegree is: %d",inDeg);
-     char startVertexData;
-    printf("Enter the start vertex for BFS and DFS:");
-    scanf(" %c", &startVertexData);
 
-    struct Vertex *startVertex = searchVertex(startVertexData);
+    printf("Vertex %c not found in the graph.\n", vertexData);
+}
+void DeleteEdge() {
+    char source, destination;
+    printf("Enter Source Vertex: ");
+    scanf(" %c", &source);
+    struct Vertex* sourceVertex = searchVertex(source);
 
-    printf("Starting BFS from vertex %c\n", startVertexData);
-    BFS(startVertex);
+    if (sourceVertex == NULL) {
+        printf("Source vertex not found.\n");
+        return;
+    }
 
-    printf("\nStarting DFS from vertex %c\n", startVertexData);
-    DFS(startVertex);
-    
+    printf("Enter Destination Vertex: ");
+    scanf(" %c", &destination);
+
+    struct Edge* prevEdge = NULL;
+    struct Edge* edge = sourceVertex->edgeList;
+
+    while (edge != NULL) {
+        if (edge->toVertex->data == destination) {
+            if (prevEdge == NULL) {
+                sourceVertex->edgeList = edge->enext;
+            } else {
+                prevEdge->enext = edge->enext;
+            }
+
+            free(edge); 
+            printf("Edge from %c to %c has been deleted.\n", source, destination);
+            return;
+        }
+
+        prevEdge = edge;
+        edge = edge->enext;
+    }
+
+    printf("Edge from %c to %c not found.\n", source, destination);
+}
+
+int main() {
+        char startVertexData; // Declare the startVertexData variable here.
+    int choice;
+    while (1) {
+        printf("\nMenu\n");
+        printf("1. Insert Vertex\n");
+        printf("2. Insert Edge\n");
+        printf("3. Print Vertices\n");
+        printf("4. Print Edges and Vertices\n");
+        printf("5. Out Degree\n");
+        printf("6. In Degree\n");
+        printf("7. BFS\n");
+        printf("8. DFS\n");
+        printf("9. Delete Vertex\n");
+        printf("10. Delete Edge\n");
+        printf("0. Exit\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+
+        switch (choice) {
+            case 1:
+                InsertVertex();
+                break;
+            case 2:
+                InsertEdge();
+                break;
+            case 3:
+                printVertices();
+                break;
+            case 4:
+                printEdgesAndVertices();
+                break;
+            case 5:
+                int outDeg = outDegree();
+                if (outDeg != -1) {
+                    printf("Out Degree is: %d\n", outDeg);
+                }
+                break;
+            case 6:
+                int inDeg = inDegree();
+                if (inDeg != -1) {
+                    printf("In Degree is: %d\n", inDeg);
+                }
+                break;
+            case 7:
+                printf("Enter the start vertex for BFS: ");
+                scanf(" %c", &startVertexData);
+                struct Vertex* startVertex = searchVertex(startVertexData);
+                printf("Starting BFS from vertex %c\n", startVertexData);
+                BFS(startVertex);
+                break;
+            case 8:
+                printf("Enter the start vertex for DFS: ");
+                scanf(" %c", &startVertexData);
+                startVertex = searchVertex(startVertexData);
+                printf("Starting DFS from vertex %c\n", startVertexData);
+                DFS(startVertex);
+                break;
+            case 9:
+                DeleteVertex();
+                break;
+            case 10:
+                DeleteEdge();
+                break;
+            case 0:
+                exit(0);
+            default:
+                printf("Invalid choice. Please try again.\n");
+        }
+    }
+
     return 0;
 }

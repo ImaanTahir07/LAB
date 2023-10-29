@@ -3,196 +3,209 @@
 #include <stdbool.h>
 #include <limits.h>
 
-int numNodes = 0;
-int totalWeight = 0;
-
-struct Edge {
-    struct Node* toNode;
-    struct Edge* nextEdge;
-    int weight;
+struct Vertex
+{
+    char data;
+    struct Edge* edgeList;
+    struct Vertex* next;
+    bool visited;
 };
 
-struct Node {
-    char data;              // Data associated with the node.
-    struct Edge* edgeList;  // Points to the linked list of edges connected to this node.
-    struct Node* nextNode;  // Points to the next node in the linked list.
-    bool inMST;             // Flag to indicate if the node is in the MST.
-    int key;                // Key value used in Prim's algorithm.
-    struct Node* parentNode; // Points to the parent node in the MST.
-} *graph = NULL;
+struct Edge
+{
+    struct Vertex* toVertex;
+    int weight;
+    struct Edge* enext;
+};
 
-void AddNode() {
-    struct Node* newNode = (struct Node*)malloc(sizeof(struct Node));
-    printf("Enter Node: \t");
-    scanf(" %c", &newNode->data);
-    newNode->edgeList = NULL;
-    newNode->nextNode = NULL;
-    newNode->inMST = false;
-    newNode->key = INT_MAX;
-    newNode->parentNode = NULL;
+struct Vertex* graph = NULL;
+
+void InsertVertex() {
+    struct Vertex* newVertex = (struct Vertex*)malloc(sizeof(struct Vertex));
+    printf("Enter Vertex: \t");
+    scanf(" %c", &newVertex->data);
+    newVertex->edgeList = NULL;
+    newVertex->next = NULL;
+    newVertex->visited = false;
 
     if (graph == NULL) {
-        graph = newNode;
+        graph = newVertex;
     } else {
-        struct Node* currentNode = graph;
-        while (currentNode->nextNode != NULL) {
-            currentNode = currentNode->nextNode;
+        struct Vertex* curr = graph;
+        while (curr->next != NULL) {
+            curr = curr->next;
         }
-        currentNode->nextNode = newNode;
+        curr->next = newVertex;
     }
-    numNodes++;
 }
 
-void AddEdge() {
-    char sourceNodeData, destinationNodeData;
-    int edgeWeight;
-    printf("Enter Source Node: ");
-    scanf(" %c", &sourceNodeData);
-    struct Node* sourceNode = graph;
-    while (sourceNode != NULL) {
-        if (sourceNodeData == sourceNode->data) {
-            break;
+struct Vertex* searchVertex(char data) {
+    struct Vertex* curr = graph;
+    while (curr != NULL) {
+        if (curr->data == data) {
+            return curr;
         }
-        sourceNode = sourceNode->nextNode;
+        curr = curr->next;
     }
-    if (sourceNode == NULL) {
-        printf("Invalid node\n");
+    return NULL;
+}
+
+void InsertEdge() {
+    char source, destination;
+    int weight;
+    printf("Enter Source Vertex: ");
+    scanf(" %c", &source);
+    struct Vertex* vcurr = searchVertex(source);
+    if (vcurr == NULL) {
+        printf("Source vertex not found\n");
         return;
     }
 
-    struct Edge* edgeStart = sourceNode->edgeList;
+    struct Edge* ecurr = vcurr->edgeList;
     struct Edge* newEdge = (struct Edge*)malloc(sizeof(struct Edge));
-    printf("Enter Destination Node: ");
-    scanf(" %c", &destinationNodeData);
-    struct Node* destinationNode = NULL;
-    struct Node* currentNode = graph;
-
-    while (currentNode != NULL) {
-        if (currentNode->data == destinationNodeData) {
-            destinationNode = currentNode;
-            break;
+    printf("Enter Destination Vertex: ");
+    scanf(" %c", &destination);
+    struct Vertex* dest = searchVertex(destination);
+    if (dest == NULL) {
+        printf("Destination vertex not found\n");
+        return;
+    }
+    printf("Enter Edge Weight: ");
+    scanf("%d", &weight);
+    newEdge->toVertex = dest;
+    newEdge->weight = weight;
+    newEdge->enext = NULL;
+    if (ecurr == NULL) {
+        vcurr->edgeList = newEdge;
+    } else {
+        while (ecurr->enext != NULL) {
+            ecurr = ecurr->enext;
         }
-        currentNode = currentNode->nextNode;
+        ecurr->enext = newEdge;
+    }
+}
+struct Edge* findMinimumEdge(struct Vertex* vertices) {
+    int minWeight = INT_MAX;
+    struct Edge* minEdge = NULL;
+    struct Vertex* v = vertices;
+    while (v != NULL) {
+        struct Edge* e = v->edgeList;
+        while (e != NULL) {
+            if (!e->toVertex->visited && e->weight < minWeight) {
+                minWeight = e->weight;
+                minEdge = e;
+            }
+            e = e->enext;
+        }
+        v = v->next;
     }
 
-    if (destinationNode == NULL) {
-        printf("Destination node not found\n");
-        free(newEdge);
+    return minEdge;
+}
+void primMST() {
+    if (graph == NULL) {
+        printf("Graph is empty. Please insert vertices and edges first.\n");
         return;
     }
 
-    printf("Enter Edge Weight: ");
-    scanf("%d", &edgeWeight);
+    struct Vertex* selectedVertices = NULL;
 
-    newEdge->toNode = destinationNode;
-    newEdge->weight = edgeWeight;
-    newEdge->nextEdge = NULL;
-    if (edgeStart == NULL) {
-        edgeStart = newEdge;
-        sourceNode->edgeList = newEdge;
-    } else {
-        struct Edge* currentEdge = edgeStart;
-        while (currentEdge->nextEdge != NULL) {
-            currentEdge = currentEdge->nextEdge;
-        }
-        currentEdge->nextEdge = newEdge;
-    }
-}
+    selectedVertices = graph;
+    selectedVertices->visited = true;
 
-//  Prim's algorithm
-void Prim() {
-    struct Node* startNode = graph; // Initialize the starting node as the first node in the graph.
-    startNode->key = 0; // Set the key of the starting node to 0
+    while (selectedVertices != NULL) {
+        struct Edge* minEdge = findMinimumEdge(selectedVertices);
 
-    for (int i = 0; i < numNodes - 1; i++) {
-        // Iterate through the graph's nodes to find the minimum key node not in the MST.
-        struct Node* currentNode = graph;
-        int minKey = INT_MAX;
-
-        while (currentNode != NULL) {
-            if (!currentNode->inMST && currentNode->key < minKey) {
-                // If the current node is not in the MST and has a smaller key, update the minimum key and the starting node.
-                minKey = currentNode->key;
-                startNode = currentNode;
-            }
-            currentNode = currentNode->nextNode;
+        if (minEdge == NULL) {
+            break;  
         }
 
-        startNode->inMST = true; // Mark the starting node as part of the MST.
+        struct Vertex* toVertex = minEdge->toVertex;
+        toVertex->visited = true;
 
-        // Iterate through the edges connected to the starting node.
-        struct Edge* currentEdge = startNode->edgeList;
-        while (currentEdge != NULL) {
-            struct Node* targetNode = currentEdge->toNode; // Get the target node of the edge.
-
-            if (!targetNode->inMST && currentEdge->weight < targetNode->key) {
-                // If the target node is not in the MST and the edge weight is smaller than its key, update the key and parent.
-                targetNode->key = currentEdge->weight;
-                targetNode->parentNode = startNode;
-            }
-            currentEdge = currentEdge->nextEdge;
-        }
-
-        totalWeight += startNode->key; // Update the total weight with the weight of the added edge.
+        printf("Edge: %c - %c (%d)\n", selectedVertices->data, toVertex->data, minEdge->weight);
+        selectedVertices = toVertex;
     }
 }
 
 
-void PrintMST() {
-    struct Node* currentNode = graph;
+
+
+void printVertices() {
+    struct Vertex* vcurr = graph;
     if (graph == NULL) {
-        printf("The graph is empty\n");
+        printf("\nGraph is Empty");
     } else {
-        printf("Minimum Spanning Tree (MST):\n");
-        while (currentNode != NULL) {
-            if (currentNode->parentNode != NULL) {
-                printf("Edge: %c - %c (Weight: %d)\n", currentNode->parentNode->data, currentNode->data, currentNode->key);
-            }
-            currentNode = currentNode->nextNode;
+        while (vcurr != NULL) {
+            printf("\n%c", vcurr->data);
+            vcurr = vcurr->next;
         }
-        printf("Total Weight of MST: %d\n", totalWeight);
     }
 }
+void printEdgesAndVertices() {
+    struct Vertex* vcurr = graph;
+    if (vcurr == NULL) {
+        printf("\nNo Vertex Found");
+    } else {
+        while (vcurr != NULL) {
+            printf("Vertex: %c ", vcurr->data);
+            struct Edge* ecurr = vcurr->edgeList;
+            if (ecurr == NULL) {
+                printf("\nNo Edges!");
+            } else {
+                while (ecurr != NULL) {
+                    printf("-> %c(%d)", ecurr->toVertex->data, ecurr->weight);
+                    ecurr = ecurr->enext;
+                }
+                printf("\n");
+            }
+            vcurr = vcurr->next;  
+        }
+    }
+}
+
 
 int main() {
-    char operation;
-    int choice, entries;
-    bool continueExecution = true;
-    while (continueExecution) {
-        printf("Menu\n 1. Add Node (N)\n 2. Add Edge (E)\n 3. Find Minimum Spanning Tree (P)\n 4. Print MST (M)\n 5. Exit (X)\n Choose: ");
-        scanf(" %c", &operation);
-        switch (operation) {
-            case 'N':
-                printf("Add Node\n How many nodes to add: ");
-                scanf("%d", &entries);
-                for (int i = 0; i < entries; i++) {
-                    AddNode();
+    int Venteries;
+        int Eenteries;
+    char choice;
+    do {
+        printf("\n1. Insert Vertex\n2. Insert Edge\n3. Print Vertices\n4. Print Edges and Vertices\n5. Find Minimum Spanning Tree\n6. Exit\n");
+        printf("Enter your choice: ");
+        scanf(" %c", &choice);
+
+        switch (choice) {
+            case '1':
+            printf("How many vertices you want to insert? ");
+            scanf("%d",&Venteries);
+            for (int i = 0; i < Venteries; i++)
+                {
+                        InsertVertex();
                 }
                 break;
-
-            case 'E':
-                printf("Add Edge\n How many edges to add: ");
-                scanf("%d", &entries);
-                for (int i = 0; i < entries; i++) {
-                    AddEdge();
-                }
+            case '2':
+                 printf("\nHow many edges you want to insert? ");
+                 scanf("%d",&Eenteries);
+                for (int i = 0; i < Eenteries; i++)
+                    {
+                        InsertEdge();
+                    }
                 break;
-
-            case 'P':
-                Prim();
+            case '3':
+                printVertices();
                 break;
-
-            case 'M':
-                PrintMST();
+            case '4':
+                printEdgesAndVertices();
                 break;
-
-            case 'X':
-                continueExecution = false;
+            case '5':
+                primMST();
                 break;
-
+            case '6':
+                exit(0);
             default:
-                break;
+                printf("Invalid choice\n");
         }
-    }
+    } while (choice != '6');
+
     return 0;
 }
